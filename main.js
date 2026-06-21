@@ -209,6 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   startBtn.addEventListener('click', () => {
+    // Intentar poner en pantalla completa
+    const docEl = document.documentElement;
+    if (docEl.requestFullscreen) {
+      docEl.requestFullscreen().catch(() => {});
+    } else if (docEl.webkitRequestFullscreen) {
+      docEl.webkitRequestFullscreen().catch(() => {});
+    }
+
     // Esconder modal suavemente con nueva animación
     startModal.classList.add('fade-out');
     setTimeout(() => { startModal.style.display = 'none'; }, 1200);
@@ -703,6 +711,21 @@ document.addEventListener('DOMContentLoaded', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Solicitar pantalla completa al girar a horizontal
+        if (window.orientation === 90 || window.orientation === -90) {
+          const docEl = document.documentElement;
+          if (docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
+          else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen().catch(()=>{});
+        }
+      }, 200);
     });
 
     // ====== ESTRELLAS FUGACES ======

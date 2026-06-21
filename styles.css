@@ -249,7 +249,7 @@ html, body {
 
 @media screen and (orientation: portrait) and (max-width: 768px) {
   #orientationOverlay {
-    display: flex;
+    display: none; /* Quitamos forzar paisaje para permitir responsividad completa */
   }
 }
 
@@ -377,4 +377,84 @@ html, body {
   color: white;
   margin-top: 10px;
   font-size: 14px;
+}
+
+/* =========================================
+   RESPONSIVIDAD TOTAL (MÓVILES Y TABLETS) 
+   ========================================= */
+
+@media screen and (max-width: 768px) {
+  /* Títulos y botones más pequeños */
+  .start-title { font-size: 2rem; letter-spacing: 2px; }
+  .start-subtitle { font-size: 0.9rem; }
+  #startBtn { padding: 12px 30px; font-size: 1rem; }
+  
+  /* Ajuste de galería */
+  .gallery-container h2 { font-size: 1.2rem; }
+  #galleryGrid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .gallery-item p { font-size: 11px; }
+
+  /* Ajuste de mensajes profundos */
+  .deep-message-box { padding: 25px; margin: 15px; }
+  .deep-message-box p { font-size: 1.1rem; margin-bottom: 15px; }
+}
+
+/* Teléfonos en horizontal (landscape) */
+@media screen and (max-height: 500px) {
+  .start-title { font-size: 1.5rem; margin-bottom: 5px; }
+  .start-content { gap: 1rem; }
+  #startBtn { padding: 8px 20px; font-size: 0.9rem; }
+  
+  /* Modal de foto arreglado para pantallas achatadas */
+  .photo-container {
+    flex-direction: row;
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  #photoModal img {
+    max-height: 85vh;
+    max-width: 50vw;
+  }
+
+  .photo-message {
+    font-size: 0.9rem;
+    margin-top: 0;
+    max-width: 40vw;
+    padding: 10px;
+  }
+
+  #viewGalleryBtn {
+    margin-top: 10px;
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+  
+  .close-btn {
+    top: -10px;
+    right: -10px;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+  
+  .deep-message-box p { font-size: 0.9rem; line-height: 1.3; }
+}
+
+/* Teléfonos en vertical (portrait) */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .photo-container {
+    max-width: 90vw;
+    max-height: 80vh;
+  }
+  #photoModal img {
+    max-height: 50vh;
+  }
+  .photo-message {
+    font-size: 1rem;
+    padding: 10px;
+  }
 }
