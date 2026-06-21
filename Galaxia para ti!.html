@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Galaxia para ti</title>
+  <meta name="description" content="Nuestra galaxia interactiva 🌌">
+  <meta property="og:title" content="Galaxia para ti">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+
+  <!-- YouTube API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+
+<body>
+
+  <!-- Bloqueo de orientación -->
+  <div id="orientationOverlay">
+    <div class="rotate-icon"></div>
+    <p>Gira tu teléfono<br>para disfrutar nuestro universo</p>
+  </div>
+
+  <!-- Pantalla de inicio -->
+  <div id="startModal">
+    <div class="start-content">
+      <h1 class="start-title">NUESTRO UNIVERSO</h1>
+      <p class="start-subtitle">Felices 21, mi osita hermosa 🐻✨<br><span
+          style="font-size:0.9em; opacity:0.8; display:block; margin-top:10px;">¡Toca las estrellitas mi vida!</span>
+      </p>
+      <button id="startBtn">ENTRAR</button>
+    </div>
+  </div>
+
+  <div id="photoModal">
+    <div class="photo-container">
+      <button class="close-btn" id="closePhotoBtn">Cerrar</button>
+      <img id="photoViewer" src="" alt="Recuerdo">
+      <div class="photo-message" id="photoMessage"></div>
+      <button id="viewGalleryBtn" style="display: none;">Ver todas las estrellas</button>
+    </div>
+  </div>
+
+  <!-- Modal de la galería -->
+  <div id="galleryModal">
+    <div class="gallery-container">
+      <button class="close-btn" id="closeGalleryBtn">Cerrar</button>
+      <h2>FELIZ CUMPLEAÑOS MI OSITA HERMOSA, ESTO LO HICE CON TODO EL AMOR DEL MUNDO</h2>
+      <div id="galleryGrid"></div>
+    </div>
+  </div>
+
+  <!-- Contenedor del Mensaje Profundo -->
+  <div id="deepMessageOverlay">
+    <div class="deep-message-box">
+      <p>Por más problemas u obstáculos que intenten golpear nuestro mundo, nuestro escudo siempre nos protegerá.</p>
+      <p>Dios esta con nosotros Osita.</p>
+    </div>
+  </div>
+
+  <!-- Segundo Mensaje Profundo -->
+  <div id="deepMessageOverlay2">
+    <div class="deep-message-box">
+      <p>Daría mi vida por ti, todo esto es para ti. Te amaré hasta mi último latido...</p>
+      <p>Y si hoy me fuera de este mundo, te seguiría amando en el más allá.</p>
+    </div>
+  </div>
+
+  <!-- Contenedor oculto para la música de YouTube -->
+  <div id="player" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; z-index:-1;"></div>
+
+  <canvas id="galaxy-canvas"></canvas>
+  <canvas id="fx"></canvas>
+
+  <div id="err" class="error"></div>
+
+  <script src="main.js"></script>
+</body>
+
+</html>
