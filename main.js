@@ -2,10 +2,15 @@
 let player;
 let isVideoReady = false;
 let globalControls = null; // Para poder pausarlos desde el modal
-let deepEventState = 0; // 0=espera 10s, 1=asteroide gigante, 2=mensaje, 3=fin
+let deepEventState = 0; // 0=espera 10s, 1=asteroide gigante, 2=mensaje, 3=fin, -1=pausado
 let deepEventTimer = 0;
 let grandAsteroidGroup = null;
 let grandAsteroidMesh = null;
+let finaleState = 0; // 0=off, 1=init, 2=forming, 3=done
+let finaleTimer = 0;
+let finaleParticles = [];
+let finaleLight = null; // Luz del gran corazón
+let starsClickedCount = 0; // Para el toast
 
 // Inicializar API de YouTube
 function onYouTubeIframeAPIReady() {
@@ -45,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeGalleryBtn = document.getElementById('closeGalleryBtn');
   const viewGalleryBtn = document.getElementById('viewGalleryBtn');
   const galleryGrid = document.getElementById('galleryGrid');
+  const grandFinaleBtn = document.getElementById('grandFinaleBtn');
   
   const romanticMessages = [
     "Daría mi propia vida por verte sonreír cada día. Eres lo más sagrado que tengo.",
@@ -264,11 +270,28 @@ document.addEventListener('DOMContentLoaded', () => {
         item.appendChild(text);
         galleryGrid.appendChild(item);
       });
+      // Mostrar el botón oculto grandioso al final
+      setTimeout(() => {
+        grandFinaleBtn.style.display = 'block';
+      }, 1000);
     }
   });
 
   closeGalleryBtn.addEventListener('click', () => {
     galleryModal.classList.remove('active');
+  });
+
+  grandFinaleBtn.addEventListener('click', () => {
+    galleryModal.classList.remove('active');
+    photoModal.classList.remove('active'); // Ocultar también la foto individual si estaba abierta
+    setTimeout(() => { photoViewer.src = ''; }, 500); // Limpiar imagen para que no quede pegada
+    
+    finaleState = 1;
+    finaleTimer = 0;
+    deepEventState = -1; // Detener cualquier otra animación (asteroide)
+    if(grandAsteroidGroup) grandAsteroidGroup.visible = false;
+    
+    if(globalControls) globalControls.enabled = false;
   });
 
   // ====== WEBGL CHECK ======
@@ -286,6 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     // Fondo azul oscuro profundo
     renderer.setClearColor(new THREE.Color('#03071e'), 1);
 
@@ -295,6 +320,17 @@ document.addEventListener('DOMContentLoaded', () => {
     controls.enableDamping = true; controls.dampingFactor = 0.05;
     controls.minDistance = 15; controls.maxDistance = 1500;
     globalControls = controls;
+    
+    // ====== POST-PROCESSING (HIPERREALISMO) ======
+    const renderScene = new THREE.RenderPass(scene, camera);
+    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.05;
+    bloomPass.strength = 1.2;
+    bloomPass.radius = 0.5;
+
+    const composer = new THREE.EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
     
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -332,11 +368,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const cloudsTex = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
     cloudsTex.anisotropy = maxAnisotropy;
 
-    const earthMat = new THREE.MeshPhongMaterial({
+    const earthMat = new THREE.MeshStandardMaterial({
       map: earthColor,
       normalMap: earthNormal,
-      specularMap: earthSpec,
-      shininess: 15
+      roughnessMap: earthSpec,
+      roughness: 0.6,
+      metalness: 0.3
     });
     const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), earthMat);
     earthGroup.add(earthMesh);
@@ -679,7 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ====== EVENTOS DE INTERACCIÓN ======
     function onPointerDown(event) {
-      if(cinematicState !== null) return; // No interacciones durante la intro
+      if(cinematicState !== null || finaleState !== 0) return; // No interacciones durante intro o final
       
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -702,6 +739,15 @@ document.addEventListener('DOMContentLoaded', () => {
           viewGalleryBtn.style.display = "none";
           photoModal.classList.add('active');
           if(globalControls) globalControls.enabled = false; // Deshabilitar zoom
+          
+          // Lógica de contador de clics para mostrar mensaje rápido
+          starsClickedCount++;
+          if(starsClickedCount % 3 === 0) {
+            const toast = document.getElementById('toastMsg');
+            toast.textContent = "Toca el universo que está en medio de nuestra galaxia 🌍";
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 6000);
+          }
         }
       }
     }
@@ -711,6 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
     });
 
     window.addEventListener('orientationchange', () => {
@@ -718,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
         
         // Solicitar pantalla completa al girar a horizontal
         if (window.orientation === 90 || window.orientation === -90) {
@@ -971,12 +1019,171 @@ document.addEventListener('DOMContentLoaded', () => {
           
           if (deepEventTimer > 2) {
             deepEventState = 3; // Termina el evento especial
-            if(globalControls) {
+            if(globalControls && finaleState === 0) {
               globalControls.target.copy(camera.userData.oldTarget);
               globalControls.enabled = true;
             }
           }
         }
+      }
+      
+      // === GRAN FINAL (FORMACIÓN ESTELAR A CORAZÓN Y DESTELLO MAGNÍFICO) ===
+      if (finaleState === 1) {
+        finaleState = 1.5;
+        
+        // Apagar el sol para que la luz provenga solo del corazón
+        sunGroup.visible = false;
+        
+        // Poner la cámara en la posición inicial para el final
+        camera.position.set(0, 50, 150);
+        camera.lookAt(0, 0, 0);
+        
+        // Crear una luz central súper potente para el corazón
+        finaleLight = new THREE.PointLight(0xffffff, 0, 20000);
+        finaleLight.position.set(0, 60, 0); // Centro geométrico aproximado del corazón
+        scene.add(finaleLight);
+        
+        // Función para obtener un punto aleatorio dentro del volumen de un corazón 3D
+        function randomHeartPoint(scale) {
+            let attempt = 0;
+            while(attempt < 1000) {
+                attempt++;
+                // x, y, z entre -1.5 y 1.5
+                const x = (Math.random() - 0.5) * 3.0;
+                const y = (Math.random() - 0.5) * 3.0;
+                const z = (Math.random() - 0.5) * 3.0;
+                
+                // Fórmula del volumen del corazón 3D (Y es arriba en Three.js)
+                const val1 = (x*x) + (9/4)*(z*z) + (y*y) - 1;
+                const val2 = (x*x) * (y*y*y);
+                const val3 = (9/80) * (z*z) * (y*y*y);
+                
+                if ((val1*val1*val1) - val2 - val3 <= 0) {
+                    return new THREE.Vector3(x * scale, y * scale, z * scale);
+                }
+            }
+            return new THREE.Vector3(0,0,0); // Fallback
+        }
+        
+        // Generar las 4000 partículas blancas esparcidas por todo el universo
+        for (let i = 0; i < 4000; i++) {
+          const scale = 50 + Math.random() * 20; // Escala grande para el corazón
+          const targetPos = randomHeartPoint(scale);
+          // Moverlo un poco hacia arriba para que no quede muy bajo
+          targetPos.y += 60;
+          
+          // Posición Inicial: Distribución esférica gigante y completamente aleatoria
+          const startRadius = 1500 + Math.random() * 2500;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          
+          const startX = startRadius * Math.sin(phi) * Math.cos(theta);
+          const startY = startRadius * Math.sin(phi) * Math.sin(theta);
+          const startZ = startRadius * Math.cos(phi);
+          const startPos = new THREE.Vector3(startX, startY, startZ);
+          
+          const pa = new THREE.Sprite(whiteParticleMat);
+          pa.scale.set(5, 5, 1);
+          pa.position.copy(startPos);
+          // Retraso aleatorio para que lleguen en diferentes momentos
+          pa.userData = { target: targetPos, start: startPos, delay: Math.random() * 10.0 }; 
+          
+          // Estrellas pura y exclusivamente BLANCAS
+          pa.material.color.setHex(0xffffff);
+          pa.material.opacity = 0; // Inician apagadas y se encienden al viajar
+          
+          scene.add(pa);
+          finaleParticles.push(pa);
+        }
+      } else if (finaleState === 1.5) {
+        finaleTimer += dt;
+        
+        // Alejar cámara lentamente para contemplar la inmensidad
+        camera.position.lerp(new THREE.Vector3(0, 150, 800), 0.003);
+        camera.lookAt(0, 60, 0);
+        
+        let allDone = true;
+        
+        finaleParticles.forEach((p) => {
+          // Si ya pasó el tiempo de delay de esta partícula, comienza a viajar
+          if (finaleTimer > p.userData.delay) {
+            // El viaje dura 15 segundos desde que empieza
+            const prog = Math.min(1.0, (finaleTimer - p.userData.delay) / 15.0);
+            
+            // Suavizado (Easing In/Out)
+            const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
+            
+            p.position.lerpVectors(p.userData.start, p.userData.target, ease);
+            
+            // Efecto de encendido gradual
+            p.material.opacity = Math.min(1.0, prog * 2.0);
+            
+            // Latido final si ya llegó
+            if (prog >= 1.0) {
+              const pulse = Math.sin(finaleTimer * 6 + p.userData.target.x) * 1.5;
+              p.scale.set(5 + pulse, 5 + pulse, 1);
+            } else {
+              allDone = false;
+            }
+          } else {
+            allDone = false;
+          }
+        });
+        
+        if (finaleTimer > 30.0) { // Tras 30s todo debe estar formado y latiendo
+          finaleState = 2;
+        }
+        
+      } else if (finaleState === 2) {
+        finaleTimer += dt;
+        
+        camera.position.lerp(new THREE.Vector3(0, 150, 800), 0.003);
+        camera.lookAt(0, 60, 0);
+        
+        // Latido intenso y sincronizado, la luz del corazón empieza a brillar
+        const heartbeat = Math.sin(finaleTimer * 6) * Math.sin(finaleTimer * 6) * 4;
+        finaleParticles.forEach(p => {
+          p.scale.set(6 + heartbeat, 6 + heartbeat, 1);
+        });
+        
+        finaleLight.intensity = Math.min(50, (finaleTimer - 30.0) * 2); // Crece la luz iluminando el universo
+        
+        // A los 40s, iniciamos el destello de luz inmenso (Bloom)
+        if (finaleTimer > 40.0) {
+          finaleState = 3;
+        }
+      } else if (finaleState === 3) {
+        finaleTimer += dt;
+        
+        // Subir drásticamente el bloom y la luz interna
+        bloomPass.strength += dt * 10.0; // Sube a niveles cegadores
+        finaleLight.intensity += dt * 50.0; // Luz interna cegadora
+        
+        const heartbeat = Math.sin(finaleTimer * 6) * Math.sin(finaleTimer * 6) * 6;
+        finaleParticles.forEach(p => {
+          p.scale.set(6 + heartbeat, 6 + heartbeat, 1);
+        });
+        
+        // A los 43s, activar el div blanco
+        if (finaleTimer > 42.5) {
+           document.getElementById('whiteFlashOverlay').classList.add('active');
+           finaleState = 4;
+        }
+      } else if (finaleState === 4) {
+        finaleTimer += dt;
+        // Restaurar el bloom silenciosamente en el fondo
+        if(bloomPass.strength > 1.2) bloomPass.strength -= dt * 10;
+        
+        // Mostrar la sección final (que es blanca) y luego se torna negra
+        if (finaleTimer > 49.0) {
+           document.getElementById('finalGoodbyeSection').classList.add('active');
+           setTimeout(() => {
+             document.getElementById('finalGoodbyeSection').classList.add('black-bg');
+           }, 500); // Darle medio segundo blanco y transicionar a negro y letras
+           finaleState = 5;
+        }
+      } else if (finaleState === 5) {
+        // Fin de todo. Todo se ejecuta desde CSS ahora.
       }
       
       // Rotaciones
@@ -1092,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (deepEventState === 0 || deepEventState === 3) {
         controls.update();
       }
-      renderer.render(scene, camera);
+      composer.render();
     }
     animate();
     
