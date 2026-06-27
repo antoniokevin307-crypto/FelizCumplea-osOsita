@@ -28,9 +28,17 @@ function onYouTubeIframeAPIReady() {
       'origin': window.location.origin
     },
     events: {
-      'onReady': onPlayerReady
+      'onReady': onPlayerReady,
+      'onStateChange': onPlayerStateChange
     }
   });
+}
+
+function onPlayerStateChange(event) {
+  // YT.PlayerState.ENDED = 0
+  if (event.data === 0) {
+    player.playVideo(); // Forzar bucle siempre
+  }
 }
 
 function onPlayerReady(event) {
@@ -214,6 +222,24 @@ document.addEventListener('DOMContentLoaded', () => {
     "WhatsApp Image 2026-02-05 at 7.45.44 PM (1).jpeg", "WhatsApp Image 2026-02-05 at 7.45.44 PM.jpeg"
   ];
 
+  // Variable para controlar si la música ya inició
+  let musicStarted = false;
+
+  function forcePlayMusic() {
+    if (musicStarted) return;
+    if (isVideoReady && player && player.playVideo) {
+      player.unMute();
+      player.setVolume(70);
+      player.playVideo();
+      // Asumimos que funcionó, si el navegador lo bloquea, el próximo tap lo volverá a intentar
+      musicStarted = true;
+    }
+  }
+
+  // Escuchar cualquier interacción en toda la página para forzar el audio (hack para iPhone/Android)
+  document.addEventListener('click', forcePlayMusic);
+  document.addEventListener('touchstart', forcePlayMusic, {passive: true});
+
   startBtn.addEventListener('click', () => {
     // Intentar poner en pantalla completa
     const docEl = document.documentElement;
@@ -227,17 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
     startModal.classList.add('fade-out');
     setTimeout(() => { startModal.style.display = 'none'; }, 1200);
     
-    // Play music si está listo, sino reintentar en un loop
-    if(isVideoReady && player && player.playVideo) {
-      player.unMute();
-      player.setVolume(70);
-      player.playVideo();
-    } else {
+    // Forzar la música inmediatamente en este clic explícito
+    forcePlayMusic();
+    
+    // Si YouTube no había cargado aún, lo intentamos periódicamente 
+    // (el usuario tendrá que hacer otro tap en móviles si esto pasa, pero en PC funciona)
+    if (!musicStarted) {
       let interval = setInterval(() => {
         if(isVideoReady && player && player.playVideo) {
           player.unMute();
           player.setVolume(70);
           player.playVideo();
+          musicStarted = true;
           clearInterval(interval);
         }
       }, 500);
